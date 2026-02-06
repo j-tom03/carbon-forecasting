@@ -13,3 +13,6 @@ wheels/
 
 # Raw data files
 data/raw/
+
+# Processed data files
+data/processed
