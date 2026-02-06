@@ -50,7 +50,7 @@ def normalize_carbon():
     # Save
     output_path = PROCESSED_DIR / "carbon.parquet"
     df.to_parquet(output_path, index=False)
-    logger.info(f"✅ Saved Carbon Silver Table: {output_path} ({len(df)} rows)")
+    logger.info(f"Saved Carbon Silver Table: {output_path} ({len(df)} rows)")
 
 def normalize_weather():
     """Reads raw Weather JSONs and outputs a clean Parquet file."""
@@ -98,7 +98,7 @@ def normalize_weather():
     # Save
     output_path = PROCESSED_DIR / "weather.parquet"
     df.to_parquet(output_path, index=False)
-    logger.info(f"✅ Saved Weather Silver Table: {output_path} ({len(df)} rows)")
+    logger.info(f"Saved Weather Silver Table: {output_path} ({len(df)} rows)")
 
 if __name__ == "__main__":
     # Ensure output directory exists
