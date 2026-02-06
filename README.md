@@ -200,6 +200,6 @@ The trained model is exposed via a RESTful inference API, designed for low-laten
 Deployment instructions and API documentation will be added once the service is live.
 
 
-## Modelling Assumptions
+## Modelling Assumptions
 - Weather data is taken from the UK centroid co-ordinates $(54 °N, 2.5°W)$
     - Simplifies modelling, preventing requirement to aggregate from hundreds of weather points
