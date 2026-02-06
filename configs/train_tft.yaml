@@ -1,0 +1,20 @@
+model:
+  hidden_size: 32
+  attention_heads: 4
+  dropout: 0.1
+
+training:
+  batch_size: 64
+  max_epochs: 10
+  learning_rate: 0.001
+
+loss:
+  type: quantile
+  quantiles: [0.1, 0.5, 0.9]
+
+optim:
+  optimizer: adam
+  scheduler: none
+
+logging:
+  experiment_name: carbon_tft
