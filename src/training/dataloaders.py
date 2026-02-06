@@ -57,7 +57,7 @@ def load_dataloaders(
             raise FileNotFoundError(f"Missing {split} dataset at {file_path}")
             
         # torch.load deserializes the TimeSeriesDataset object
-        datasets[split] = torch.load(file_path)
+        datasets[split] = torch.load(file_path, weights_only=False)
         logger.info(f"Loaded {split}: {len(datasets[split])} samples")
 
     # 4. Create DataLoaders
