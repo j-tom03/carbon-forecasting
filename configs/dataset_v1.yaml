@@ -1,0 +1,39 @@
+# Data generation parameters
+resolution_minutes: 30
+lookback_steps: 96      # 48 hours (at 30m resolution)
+forecast_horizon: 192   # 96 hours (at 30m resolution)
+
+target:
+  name: carbon_intensity
+  scale: standard
+
+time_features:
+  - hour_of_day
+  - day_of_week
+  - is_weekend
+
+# Lag features: Past values of the target to use as inputs
+# Key = variable name, Value = list of lag steps
+lag_features:
+  carbon_intensity:
+    - 1   # Previous 30 mins
+    - 2   # Previous 1 hour
+    - 4   # Previous 2 hours
+    - 8   # Previous 4 hours
+    - 24  # Previous 12 hours
+    - 48  # Previous 24 hours (1 day)
+
+# Rolling window statistics
+rolling_features:
+  carbon_intensity:
+    - window: 8
+      stats: [mean, std]
+    - window: 48
+      stats: [mean]
+
+# External variables (Covariates)
+exogenous_features:
+  weather:
+    - temperature
+    - windspeed
+    - cloudcover
