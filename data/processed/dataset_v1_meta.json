@@ -1,0 +1,24 @@
+{
+    "creation_timestamp": "2026-02-06T15:08:16.324307",
+    "start_date": "2017-09-11T23:00:00",
+    "end_date": "2026-01-01T23:00:00",
+    "resolution": "30min",
+    "rows": 144830,
+    "columns": [
+        "timestamp",
+        "carbon_intensity",
+        "temperature",
+        "windspeed",
+        "cloudcover",
+        "weather_missing",
+        "carbon_missing"
+    ],
+    "sources": [
+        "National Grid ESO (Carbon)",
+        "Open-Meteo (Weather)"
+    ],
+    "quality_report": {
+        "missing_weather_rows": 0,
+        "missing_carbon_rows": 0
+    }
+}
