@@ -4,6 +4,7 @@ import torch.optim as optim
 import logging
 import time
 import mlflow
+import numpy as np
 from pathlib import Path
 from typing import Dict, Any
 
@@ -18,11 +19,11 @@ class TFTTrainer:
         self.model = model.to(device)
         self.device = device
         
-        # Setup Optimizer
+        # Setup Optimiser
         lr = float(config['training']['learning_rate'])
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         
-        # Setup Quantiles for Loss
+        # Setup Quantiles
         self.quantiles = config['loss']['quantiles']
         
     def train_epoch(self, loader) -> float:
@@ -32,23 +33,10 @@ class TFTTrainer:
         for batch_idx, (x, y) in enumerate(loader):
             x, y = x.to(self.device), y.to(self.device)
             
-            # 1. Zero Gradients
             self.optimizer.zero_grad()
-            
-            # 2. Forward Pass
-            # x shape: [batch, lookback, features]
             preds = self.model(x) 
-            
-            # 3. Compute Loss
-            # preds shape: [batch, horizon, quantiles]
-            # y shape: [batch, horizon]
             loss = quantile_loss(preds, y, self.quantiles)
-            
-            # 4. Backward Pass
             loss.backward()
-            
-            # 5. Update Weights
-            # Clip gradients to prevent explosion
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=0.1)
             self.optimizer.step()
             
@@ -56,18 +44,54 @@ class TFTTrainer:
             
         return total_loss / len(loader)
 
-    def validate(self, loader) -> float:
+    def validate(self, loader) -> Dict[str, float]:
+        """
+        Runs validation and calculates:
+        1. Quantile Loss (Optimization Target)
+        2. MAE (Interpretable Accuracy)
+        3. Coverage (Calibration Check)
+        """
         self.model.eval()
         total_loss = 0.0
+        total_mae = 0.0
+        total_coverage = 0.0
+        num_batches = 0
         
         with torch.no_grad():
             for x, y in loader:
                 x, y = x.to(self.device), y.to(self.device)
+                
+                # preds shape: [batch, horizon, 3] (0.1, 0.5, 0.9)
                 preds = self.model(x)
+                
+                # 1. Quantile Loss
                 loss = quantile_loss(preds, y, self.quantiles)
                 total_loss += loss.item()
                 
-        return total_loss / len(loader)
+                # 2. MAE on Median Forecast (Index 1 is the 0.5 quantile)
+                # y shape: [batch, horizon]
+                median_preds = preds[:, :, 1]
+                mae = torch.abs(median_preds - y).mean()
+                total_mae += mae.item()
+                
+                # 3. Coverage (Did y fall between 0.1 and 0.9?)
+                # Index 0 is 0.1 (Lower), Index 2 is 0.9 (Upper)
+                lower = preds[:, :, 0]
+                upper = preds[:, :, 2]
+                
+                # Create a boolean mask: 1 if inside, 0 if outside
+                inside_interval = (y >= lower) & (y <= upper)
+                coverage = inside_interval.float().mean()
+                total_coverage += coverage.item()
+                
+                num_batches += 1
+                
+        metrics = {
+            "val_loss": total_loss / num_batches,
+            "val_mae": total_mae / num_batches,
+            "val_coverage": total_coverage / num_batches
+        }
+        return metrics
 
     def fit(self, train_loader, val_loader, epochs: int, save_dir: Path):
         best_val_loss = float('inf')
@@ -77,24 +101,29 @@ class TFTTrainer:
         for epoch in range(1, epochs + 1):
             start_time = time.time()
             
-            # Run cycles
+            # Train
             train_loss = self.train_epoch(train_loader)
-            val_loss = self.validate(val_loader)
+            
+            # Validate (Now returns a Dict of metrics)
+            val_metrics = self.validate(val_loader)
+            val_loss = val_metrics["val_loss"]
             
             duration = time.time() - start_time
-
+            
+            # Explicitly log all 3 metrics per epoch
             mlflow.log_metrics({
                 "train_loss": train_loss,
                 "val_loss": val_loss,
+                "val_mae": val_metrics["val_mae"],           # Accuracy
+                "val_coverage": val_metrics["val_coverage"], # Calibration
                 "epoch_time": duration
             }, step=epoch)
             
-            # Logging
             logger.info(
-                f"Epoch {epoch}/{epochs} | "
-                f"Train Loss: {train_loss:.4f} | "
-                f"Val Loss: {val_loss:.4f} | "
-                f"Time: {duration:.1f}s"
+                f"Epoch {epoch} | "
+                f"Loss: {train_loss:.4f} / {val_loss:.4f} | "
+                f"MAE: {val_metrics['val_mae']:.4f} | "
+                f"Cov: {val_metrics['val_coverage']:.1%}" # e.g., 85.0%
             )
             
             # Save Best Model
@@ -102,13 +131,9 @@ class TFTTrainer:
                 best_val_loss = val_loss
                 save_path = save_dir / "best_model.pt"
                 torch.save(self.model.state_dict(), save_path)
-                logger.info(f"New best model saved to {save_path}")
+                logger.info(f"New best model saved")
 
-        # Load the best weights back before logging to MLflow
-        best_model_path = save_dir / "best_model.pt"
-        if best_model_path.exists():
-            self.model.load_state_dict(torch.load(best_model_path))
-            
-            # Log the model to MLflow Model Registry
-            logger.info("Logging best model to MLflow...")
-            mlflow.pytorch.log_model(self.model, "model")
+        # Load best weights back for final artifacts
+        best_path = save_dir / "best_model.pt"
+        if best_path.exists():
+            self.model.load_state_dict(torch.load(best_path, weights_only=True))
