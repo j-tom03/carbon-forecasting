@@ -19,3 +19,21 @@ data/processed/*.parquet
 
 # Training data files
 data/training/*.pt
+
+# MLFlow files
+mlruns/
+.trash/
+
+# PyTorch: Heavy model weights (binary blobs)
+*.pt
+*.pth
+*.ckpt
+
+# Model Directories (Temporary & Production)
+models/checkpoints/
+models/temp/
+models/tft_prod/
+
+# Python Cache (just in case)
+__pycache__/
+*.pyc

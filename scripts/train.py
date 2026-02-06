@@ -4,7 +4,10 @@ import yaml
 import torch
 import logging
 import mlflow
+import json
+import shutil
 from pathlib import Path
+from datetime import datetime
 
 # Add src to path for imports
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
@@ -12,7 +15,7 @@ sys.path.append(str(PROJECT_ROOT / "src"))
 
 from training.dataloaders import load_dataloaders
 from models.tft import TemporalFusionTransformer
-from training.trainer import TFTTrainer
+from training.train_tft import TFTTrainer
 
 # Configure Logging
 logging.basicConfig(
@@ -121,6 +124,45 @@ def main():
         else:
             logger.warning("No best model file found to log.")
 
+    logger.info("Generating production artifacts...")
+    
+    prod_dir = PROJECT_ROOT / "models" / "tft_prod"
+    prod_dir.mkdir(parents=True, exist_ok=True)
+    
+    # A. Save Weights (Clean Copy)
+    final_model_path = prod_dir / "model.pt"
+    if best_model_path.exists():
+        shutil.copy(best_model_path, final_model_path)
+        logger.info(f"Saved production model: {final_model_path}")
+    else:
+        logger.error("Training failed to produce a model checkpoint.")
+        sys.exit(1)
+
+    # B. Save Metadata (JSON Sidecar)
+    # The API will read this to know how to configure the model class
+    metadata = {
+        "model_type": "TemporalFusionTransformer",
+        "version": "v1.0",
+        "timestamp": datetime.utcnow().isoformat(),
+        "config": {
+            "hidden_size": config['model']['hidden_size'],
+            "dropout": config['model']['dropout'],
+            "attention_heads": config['model']['attention_heads'],
+            "quantiles": config['loss']['quantiles']
+        },
+        "data_spec": {
+            "num_features": meta['num_features'],
+            "lookback": meta['lookback'],
+            "horizon": meta['horizon'],
+            "feature_names": meta.get('feature_names', [])
+        }
+    }
+    
+    meta_path = prod_dir / "metadata.json"
+    with open(meta_path, "w") as f:
+        json.dump(metadata, f, indent=4)
+        
+    logger.info(f"Saved inference metadata: {meta_path}")
     logger.info("Training pipeline completed successfully.")
 
 if __name__ == "__main__":
