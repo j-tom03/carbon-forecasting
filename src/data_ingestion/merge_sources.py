@@ -22,6 +22,14 @@ def merge_sources():
     except FileNotFoundError as e:
         logger.error(f"Missing input files. Run normalise.py first. Error: {e}")
         return
+    
+    # deduplication of timestamps
+    before_count = len(carbon_df)
+    carbon_df = carbon_df.drop_duplicates(subset=['timestamp'], keep='last')
+    deduped_count = len(carbon_df)
+    
+    if before_count != deduped_count:
+        logger.warning(f"Removed {before_count - deduped_count} duplicate timestamps from Carbon data.")
 
     # 2. Prepare Weather (Resample & Forward Fill)
     weather_df = weather_df.set_index('timestamp')

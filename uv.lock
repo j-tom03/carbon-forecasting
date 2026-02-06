@@ -19,6 +19,7 @@ dependencies = [
     { name = "fastparquet" },
     { name = "pandas" },
     { name = "pyarrow" },
+    { name = "pyyaml" },
     { name = "requests" },
 ]
 
@@ -28,6 +29,7 @@ requires-dist = [
     { name = "fastparquet", specifier = ">=2025.12.0" },
     { name = "pandas", specifier = ">=3.0.0" },
     { name = "pyarrow", specifier = ">=23.0.0" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.32.5" },
 ]
 
