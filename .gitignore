@@ -16,3 +16,6 @@ data/raw/
 
 # Processed data files
 data/processed/*.parquet
+
+# Training data files
+data/training/*.pt
