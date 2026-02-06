@@ -44,7 +44,7 @@ class TemporalFusionTransformer(nn.Module):
             batch_first=True
         )
         
-        # Normalization layer for residual connection
+        # Normalisation layer for residual connection
         self.post_attn_norm = nn.LayerNorm(hidden_size)
         
         # 4. Output Decoder
@@ -78,7 +78,7 @@ class TemporalFusionTransformer(nn.Module):
         # Apply attention
         attn_out, _ = self.attention(query=last_state, key=lstm_out, value=lstm_out)
         
-        # Residual connection and normalization
+        # Residual connection and normalisation
         context = self.post_attn_norm(last_state + attn_out) # [batch, 1, hidden]
         
         # 4. Decode
