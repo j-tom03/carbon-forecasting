@@ -67,7 +67,10 @@ class TFTObjective:
                 return val_loss
                 
             except Exception as e:
-                # If a trial fails prune it instead of crashing the whole study
+                # Log the specific error to MLflow so it's searchable
+                mlflow.set_tag("status", "failed")
+                mlflow.set_tag("error", str(e))
                 print(f"Trial {trial.number} failed: {e}")
-                # Return infinity so Optuna knows this was a bad run
+                
+                # Return infinity so Optuna learns to avoid this region
                 return float('inf')

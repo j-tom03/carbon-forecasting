@@ -145,40 +145,30 @@ def train_and_evaluate(
     val_loader: Any,
     meta: Dict[str, Any],
     device: torch.device,
-    enable_logging: bool = True) -> float:
+    save_dir: Path = None
+    ) -> float:
     """
-    Standard interface for training. Used by both the main training script
-    and the Optuna tuning script.
-    
-    Returns:
-        float: The final validation loss (metric to minimize).
+    Standard interface for training. 
     """
-    # 1. Initialise Model with the specific config for this run
-    # (Optuna will inject different hidden_sizes/dropouts here)
     model = TemporalFusionTransformer(
         config=config,
         num_features=meta['num_features'],
         output_horizon=meta['horizon']
     )
     
-    # 2. Setup Trainer
     trainer = TFTTrainer(config, model, device)
     
-    # 3. Train
-    # We use a temporary directory for checkpoints to avoid cluttering 
-    # the main models/ folder during tuning trials.
-    temp_dir = Path("models/temp_tuning")
-    temp_dir.mkdir(parents=True, exist_ok=True)
+    if save_dir is None:
+        save_dir = Path("models/temp_tuning")
+    
+    save_dir.mkdir(parents=True, exist_ok=True)
     
     trainer.fit(
         train_loader, 
         val_loader, 
         epochs=config['training']['max_epochs'], 
-        save_dir=temp_dir
+        save_dir=save_dir
     )
     
-    # 4. Calculate Final Metric
     val_metrics = trainer.validate(val_loader)
-    final_loss = val_metrics["val_loss"]
-    
-    return final_loss
+    return val_metrics["val_loss"]
