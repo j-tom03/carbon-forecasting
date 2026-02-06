@@ -13,9 +13,9 @@ RAW_CARBON_DIR = Path("data/raw/carbon_intensity")
 RAW_WEATHER_DIR = Path("data/raw/weather")
 PROCESSED_DIR = Path("data/processed")
 
-def normalize_carbon():
+def normalise_carbon():
     """Reads raw Carbon JSONs and outputs a clean Parquet file."""
-    logger.info("Normalizing Carbon Data...")
+    logger.info("Normalising Carbon Data...")
     
     files = sorted(glob.glob(str(RAW_CARBON_DIR / "*.json")))
     records = []
@@ -37,7 +37,7 @@ def normalize_carbon():
     # Create DataFrame
     df = pd.DataFrame(records)
     
-    # 1. Standardize Timestamp (UTC)
+    # 1. Standardise Timestamp (UTC)
     df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_convert(None)
     
     # 2. Type Enforcement
@@ -52,9 +52,9 @@ def normalize_carbon():
     df.to_parquet(output_path, index=False)
     logger.info(f"Saved Carbon Silver Table: {output_path} ({len(df)} rows)")
 
-def normalize_weather():
+def normalise_weather():
     """Reads raw Weather JSONs and outputs a clean Parquet file."""
-    logger.info("Normalizing Weather Data...")
+    logger.info("Normalsing Weather Data...")
     
     files = sorted(glob.glob(str(RAW_WEATHER_DIR / "*.json")))
     all_dfs = []
@@ -84,7 +84,7 @@ def normalize_weather():
     # Combine all chunks
     df = pd.concat(all_dfs, ignore_index=True)
     
-    # 1. Standardize Timestamp (UTC)
+    # 1. Standardise Timestamp (UTC)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     
     # 2. Type Enforcement (Float32 saves memory)
@@ -104,5 +104,5 @@ if __name__ == "__main__":
     # Ensure output directory exists
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     
-    normalize_carbon()
-    normalize_weather()
+    normalise_carbon()
+    normalise_weather()
