@@ -1,0 +1,6 @@
+outs:
+- md5: 22a185c0c4428b43808f6d783bacbe81.dir
+  size: 60340
+  nfiles: 2
+  hash: md5
+  path: tft_prod
