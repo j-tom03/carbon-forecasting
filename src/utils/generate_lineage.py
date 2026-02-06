@@ -57,7 +57,7 @@ def draw_lineage():
             
             [parquet_c, parquet_w] >> Edge(label="Left Join\n(Forward Fill)") >> merger
             
-            final_ds = Spark(f"Final Dataset\n{data_label}")
+            final_ds = PostgreSQL(f"Final Dataset\n{data_label}")
             
             merger >> final_ds
 
