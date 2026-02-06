@@ -36,7 +36,7 @@ def fetch_weather_chunk(start_date: str, end_date: str) -> Optional[Dict[str, An
         "longitude": LONGITUDE,
         "start_date": start_date,
         "end_date": end_date,
-        "hourly": ["temperature_2m", "wind_speed_10m", "direct_radiation"],
+        "hourly": ["temperature_2m", "wind_speed_10m", "cloudcover"],
         "timezone": "GMT"
     }
 
