@@ -17,7 +17,7 @@ sys.path.append(str(PROJECT_ROOT / "src"))
 
 from training.dataloaders import load_dataloaders
 from training.optuna_objective import TFTObjective
-from training.trainer import train_and_evaluate
+from training.train_tft import train_and_evaluate
 
 # Configure Logging
 logging.basicConfig(
