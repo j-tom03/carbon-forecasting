@@ -1,9 +1,8 @@
 from diagrams import Diagram, Cluster, Edge
-from diagrams.onprem.analytics import Spark
-from diagrams.onprem.database import PostgreSQL
 from diagrams.onprem.compute import Server
 from diagrams.programming.language import Python
-from diagrams.custom import Custom
+from diagrams.azure.general import File
+from diagrams.programming.flowchart import Document
 from pathlib import Path
 import json
 
@@ -46,8 +45,8 @@ def draw_lineage():
             
             [raw_c, raw_w] >> Edge(label="Raw JSONs") >> norm
             
-            parquet_c = PostgreSQL("Carbon Parquet")
-            parquet_w = PostgreSQL("Weather Parquet")
+            parquet_c = File("Carbon Parquet")
+            parquet_w = File("Weather Parquet")
             
             norm >> parquet_c
             norm >> parquet_w
@@ -57,7 +56,7 @@ def draw_lineage():
             
             [parquet_c, parquet_w] >> Edge(label="Left Join\n(Forward Fill)") >> merger
             
-            final_ds = PostgreSQL(f"Final Dataset\n{data_label}")
+            final_ds = File(f"Final Dataset\n{data_label}")
             
             merger >> final_ds
 
