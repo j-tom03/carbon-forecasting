@@ -6,7 +6,7 @@ import logging
 import mlflow
 import optuna
 import json
-import shutil
+import pandas as pd
 import copy
 from pathlib import Path
 from datetime import datetime
@@ -96,17 +96,48 @@ def main():
             )
             
             logger.info(f"Production model retrained (Loss: {final_loss:.4f})")
+
+            logger.info("Calculating scaler statistics from raw data...")
             
+            source_data_path = PROJECT_ROOT / "data" / "processed" / "dataset_v1.parquet"
+            
+            if source_data_path.exists():
+                df = pd.read_parquet(source_data_path)
+                
+                # 1. Get the authoritative target name from the config
+                target_col = base_config['data']['target_col']
+                
+                # 2. Validate it exists
+                if target_col not in df.columns:
+                    logger.error(f"Critical: Config target '{target_col}' not found in dataset columns: {df.columns.tolist()}")
+                    sys.exit(1)
+
+                # 3. Calculate Stats
+                scaler_mean = float(df[target_col].mean())
+                scaler_std = float(df[target_col].std())
+                
+                logger.info(f"Scaler stats derived for '{target_col}': Mean={scaler_mean:.2f}, Std={scaler_std:.2f}")
+            else:
+                logger.warning("Source data not found. Using UK Grid defaults.")
+                # Fallback only if the FILE is missing, not if logic fails
+                scaler_mean = 182.0 
+                scaler_std = 64.0
+
             # C. Generate Metadata (Critical for API)
             metadata = {
                 "model_type": "TemporalFusionTransformer",
                 "version": "v2.0-hpo-optimized",
                 "timestamp": datetime.utcnow().isoformat(),
-                "config": final_config['model'], # Save the optimized config
+                "config": final_config['model'],
                 "metrics": {"val_loss": final_loss},
                 "data_spec": {
                     "num_features": meta['num_features'],
-                    "horizon": meta['horizon']
+                    "horizon": meta['horizon'],
+                    "lookback": meta.get('lookback', 96), # Ensure lookback is captured
+                    "scaler": {
+                        "mean": scaler_mean, 
+                        "std": scaler_std
+                    }
                 }
             }
             
