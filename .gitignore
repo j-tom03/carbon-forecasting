@@ -10,6 +10,9 @@ wheels/
 # Virtual environments
 .venv
 
+# .env file
+.env
+
 
 # Raw data files
 data/raw/

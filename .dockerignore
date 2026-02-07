@@ -1,0 +1,22 @@
+# .dockerignore
+
+# 1. Source Control & Environment
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+.DS_Store
+
+# Ignore all data
+data/
+# except the validation file we need for the demo
+!data/training/val.pt
+
+# 3. Development Artifacts
+mlruns/
+notebooks/
+tests/
+models/checkpoints/
+models/temp_tuning/
+logs/
