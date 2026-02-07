@@ -14,6 +14,7 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
+    concurrency: deploy-group
     steps:
       # 1. Get the latest code
       - uses: actions/checkout@v4
