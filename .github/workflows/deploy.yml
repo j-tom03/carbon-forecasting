@@ -1,0 +1,29 @@
+name: Deploy to Fly.io
+
+on:
+  # Trigger 1: Whenever code is pushed to the main branch
+  # (This includes when your 'retrain.yml' commits a new model!)
+  push:
+    branches:
+      - main
+  
+  # Trigger 2: Manual button for emergencies
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Get the latest code
+      - uses: actions/checkout@v4
+
+      # 2. Install the Fly CLI
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      
+      # 3. Deploy
+      # --remote-only: Builds the Docker image on Fly's servers (faster & free-er)
+      # We use the token you just generated to authenticate.
+      - run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

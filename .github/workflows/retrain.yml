@@ -1,0 +1,58 @@
+name: Monthly Retraining Pipeline
+
+on:
+  # 1. Schedule: Run at 03:00 UTC on the 1st of every month
+  schedule:
+    - cron: "0 3 1 * *"
+  
+  # 2. Manual Trigger: Allows you to force a run from the GitHub UI for testing
+  workflow_dispatch:
+
+jobs:
+  train-and-evaluate:
+    runs-on: ubuntu-latest
+    
+    # CRITICAL: This permission allows the Action to save the new model back to the repo
+    permissions:
+      contents: write
+
+    steps:
+      # --- Step 1: Setup Environment ---
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+          enable-cache: true
+      
+      - name: Install dependencies
+        run: uv sync
+
+      # --- Step 2: The Logic (Train & Evaluate) ---
+      - name: Retrain Model
+        env:
+          # Set environment to production so the script uses correct settings
+          APP_ENV: production
+          # If your script needs API keys (e.g., for data fetching), uncomment below:
+          # CARBON_API_KEY: ${{ secrets.CARBON_API_KEY }}
+        run: |
+          # This script handles training AND evaluation.
+          # It should only overwrite 'models/tft_prod' if the new model is better.
+          uv run python scripts/run_hpo.py
+
+      # --- Step 3: GitOps (Commit & Push) ---
+      - name: Commit and Push if changed
+        run: |
+          # Configure the bot identity
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          
+          # Stage the model artifacts (and metadata if you have it)
+          git add models/tft_prod/
+          
+          # Check if anything actually changed.
+          # If yes: Commit and Push.
+          # If no: Exit silently (do nothing).
+          git diff --staged --quiet || (git commit -m "🤖 Model Update: Auto-promoted better model" && git push)
