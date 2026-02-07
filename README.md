@@ -1,5 +1,5 @@
 # Carbon Intensity Forecasting: Temporal Fusion Transformer
-A production-grade MLOps pipeline for forecasting grid carbon intensity (gCO₂/kWh) 96-hours ahead using a Temporal Fusion Transformer (TFT). This project demonstrates an end-to-end machine learning lifecycle, from data ingestion and versioning to model deployment and monitoring.
+A production-grade MLOps pipeline for forecasting grid carbon intensity (gCO₂/kWh) 96-hours ahead using a Temporal Fusion Transformer (TFT). This project demonstrates an end-to-end machine learning lifecycle, from data ingestion and versioning to automated retraining and cloud deployment.
 
 ## Quick Start
 
@@ -16,12 +16,22 @@ cd carbon-forecasting
 uv sync
 ```
 
-#### 2. Data Ingestion
-This project uses a centralised ETL orchestrator. Running of individual scripts is not necessary.
+#### 2. Run the pipeline (local)
+To fetch data, process it, and train a model locally:
 
-To fetch and process the dataset:
+**a)** Ingest Data (ETL):
 ```bash
 python scripts/ingest_data.py --start 2017-09-11 --end 2026-01-01
+```
+
+**b)** Build Features:
+```bash
+python scripts/build_features.py --config configs/data_config.yaml
+```
+
+**c)** Train Model:
+```bash
+python scripts/train.py --config configs/train_tft.yaml
 ```
 
 This command performs the following steps automatically:
@@ -36,58 +46,58 @@ This command performs the following steps automatically:
 
 - **Document**: Generates a Metadata Sidecar (`dataset_v1_meta.json`) and updates the Lineage Diagram.
 
-#### 3. Data Versioning (DVC)
+#### 3. Use the Live API (Cloud)
 
-Large data files are not committed to Git. We use DVC (Data Version Control) to track the `data/` directory.
+The model is deployed to production on Fly.io. You can interact with it directly without installing anything.
 
-To pull the exact dataset used for the latest model training:
+Swagger UI (Interactive Docs): 👉 [https://carbon-forecasting.fly.dev/docs](https://carbon-forecasting.fly.dev/docs)
 
-```bash
-dvc pull
-```
-
-To update the dataset after running ingestion:
+Example Prediction (cURL): Get a probabilistic forecast for the next 48 hours:
 
 ```bash
-dvc add data/raw data/processed
-git add data/raw.dvc data/processed.dvc
-git commit -m "Update dataset versions"
+curl -X GET 'https://carbon-forecasting.fly.dev/predict?horizon=48' \
+  -H 'accept: application/json'
 ```
 
-#### 4. Build Dataset
-To split the processed data into training, validation, and test sets (saved as tensors):
+## MLOps Architecture (CI/CD)
+This project implements a Level 2 MLOps maturity model ("Automated Pipeline"). It is designed to be self-healing and self-improving without manual intervention.
 
+#### 1. The Automation Loop
+
+We use GitHub Actions to orchestrate the lifecycle:
+
+| Workflow | Schedule | Description |
+| :--- | :---: | ---: |
+| Monthly Retraining | 0 3 1 * * | Runs on the 1st of every month. Fetches fresh data, retrains the model, and compares it against production. |
+| Deployment | on: push | Triggered automatically when code (or the model) changes. Builds a Docker container and pushes it to Fly.io. |
+
+#### 2. The "GitOps" Strategy
+
+We bake the model artifact into the Docker image. This ensures strict versioning:
+
+1. The Retraining Action trains a candidate model.
+
+2. It evaluates the candidate against the current production model (using `val_loss`).
+
+3. If (and only if) the new model is better, it commits the new model weights (`models/tft_prod/`) back to the git repository.
+
+4. This commit triggers the Deployment Action, which updates the live API with zero downtime.
+
+## Deployment Details
+The application is containerised using Docker and deployed to Fly.io.
+
+- **Container**: python:3.11-slim base image.
+
+- **Server**: FastAPI with Uvicorn worker.
+
+- **Resources**: Configured with 1GB RAM to support PyTorch inference overhead.
+
+- **Secrets**: Environment variables (APP_ENV, LOG_LEVEL) managed via Fly Secrets.
+
+To deploy manually (requires Fly CLI):
 ```bash
-python scripts/build_features.py --config configs/data_config.yaml
+fly deploy --remote-only
 ```
-
-#### 5. Model Training
-To train a single model using the default configuration:
-
-```bash
-python scripts/train.py --config configs/train_tft.yaml
-```
-
-This will:
-
-- Train the TFT model on the GPU/MPS (Apple Silicon) if available.
-
-- Log metrics (Loss, MAE, Coverage) and parameters to MLflow.
-
-- Save the best model to models/checkpoints/best_model.pt.
-
-- Generate a forecast sanity check plot.
-
-#### 6. Hyperparameter Optimisation (HPO)
-
-To automatically find the best model configuration and promote it to production:
-
-```bash
-python scripts/run_hpo.py --n_trials 10
-```
-
-This runs an Optuna study to tune learning rate, hidden size, and dropout. The best performing trial is automatically re-trained and saved as the production candidate.
-
 
 ## Data Architecture
 The system follows a Medallion Architecture to ensure data quality and traceability:
@@ -114,11 +124,6 @@ The forecasting engine is a custom implementation of the **Temporal Fusion Trans
   - *Time-Varying:* Carbon intensity, Wind speed, Solar radiation, Temperature.
   - *Static:* Month, Day-of-week, Hour-of-day (cyclical encoding).
 
-#### Design Principles
-- Reproducible experiments over ad-hoc notebooks
-- Automation over manual intervention
-- Production-aware ML system design
-
 ![TFT Model Architecture](docs/model_architecture.png)
 
 _Automated architecture diagram generated by src/utils/visualise_model.py_
@@ -135,6 +140,7 @@ data/
 
 ## Project Structure
 ```text
+├── .github/workflows/     # CI/CD Pipelines (Retrain & Deploy)
 ├── configs/               # YAML configuration files
 ├── data/                  # Data directory (managed by DVC)
 ├── docs/                  # Documentation & Assets
@@ -142,12 +148,14 @@ data/
 ├── notebooks/             # Exploratory Analysis (EDA)
 ├── scripts/               # CLI Entrypoints (ingest, train, tune)
 ├── src/                   # Source Code
-   ├── api/                # FastAPI Application
-   ├── data_ingestion/     # Data Ingestion scripts
-   ├── features/           # Raw data feature extraction
-   ├── models/             # PyTorch Model Definitions
-   ├── training/           # Training Loops & Dataloaders
-   └── utils/              # Utility functions
+│   ├── api/               # FastAPI Application
+│   ├── data_ingestion/    # Data Ingestion scripts
+│   ├── features/          # Feature Engineering
+│   ├── models/            # PyTorch Model Definitions
+│   └── training/          # Training Loops
+├── Dockerfile             # Container definition
+├── fly.toml               # Cloud configuration
+└── pyproject.toml         # Dependency management
 ```
 
 
@@ -165,11 +173,10 @@ A full dependency list is defined in `pyproject.toml`.
 - CPU-only training supported
 - GPU optional for faster experimentation
 
-## MLOps & Experiment Tracking
-This project uses **MLflow** for strict experiment tracking and **Optuna** for automated hyperparameter tuning.
+## Experiment Tracking
+This project uses MLflow for strict experiment tracking and Optuna for automated hyperparameter tuning.
 
-### Experiment Registry
-To view training runs, metrics, and artifacts, launch the local MLflow UI:
+To view training runs, metrics, and artifacts locally:
 
 ```bash
 mlflow ui
@@ -192,12 +199,6 @@ Successful training runs generate a "Deployment Package" in models/tft_prod/, co
 - **model.pt**: The optimised PyTorch model weights.
 
 - **metadata.json**: A JSON sidecar defining the model architecture, feature names, and scaling parameters required for inference.
-
-
-## Deployment
-The trained model is exposed via a RESTful inference API, designed for low-latency probabilistic forecasts. The service supports versioned models and is deployable using containerisation on free-tier cloud infrastructure.
-
-Deployment instructions and API documentation will be added once the service is live.
 
 
 ## Modelling Assumptions
