@@ -1,5 +1,5 @@
 # Carbon Intensity Forecasting: Temporal Fusion Transformer
-A production-grade MLOps pipeline for forecasting grid carbon intensity (gCO₂/kWh) 96-hours ahead using a Temporal Fusion Transformer (TFT). This project demonstrates an end-to-end machine learning lifecycle, from data ingestion and versioning to automated retraining and cloud deployment.
+A production-grade MLOps pipeline for forecasting grid carbon intensity (gCO₂/kWh) 192-hours ahead using a Temporal Fusion Transformer (TFT). This project demonstrates an end-to-end machine learning lifecycle, from data ingestion and versioning to automated retraining and cloud deployment.
 
 ## Quick Start
 
