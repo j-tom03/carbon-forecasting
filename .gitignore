@@ -35,7 +35,6 @@ mlruns/
 # Model Directories (Temporary & Production)
 models/checkpoints/
 models/temp/
-models/tft_prod/
 
 # Python Cache (just in case)
 __pycache__/
