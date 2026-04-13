@@ -28,8 +28,13 @@ mlruns/
 .trash/
 
 # PyTorch: Heavy model weights (binary blobs)
+*.pt
 *.pth
 *.ckpt
+
+# whitelist prod weights
+!models/tft_prod/
+!models/tft_prod/**
 
 # Model Directories (Temporary & Production)
 models/checkpoints/
