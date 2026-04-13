@@ -28,7 +28,6 @@ mlruns/
 .trash/
 
 # PyTorch: Heavy model weights (binary blobs)
-*.pt
 *.pth
 *.ckpt
 
