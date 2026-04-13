@@ -50,7 +50,7 @@ jobs:
           git config user.email "actions@github.com"
           
           # Stage the model artifacts (and metadata if you have it)
-          git add models/tft_prod/
+          git add -f models/tft_prod/
           
           # Check if anything actually changed.
           # If yes: Commit and Push.
