@@ -45,14 +45,16 @@ jobs:
       # --- Step 3: GitOps (Commit & Push) ---
       - name: Commit and Push if changed
         run: |
-          # Configure the bot identity
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           
-          # Stage the model artifacts (and metadata if you have it)
+          # Force add just in case, though the negation rule above makes this redundant
           git add -f models/tft_prod/
           
-          # Check if anything actually changed.
-          # If yes: Commit and Push.
-          # If no: Exit silently (do nothing).
-          git diff --staged --quiet || (git commit -m "🤖 Model Update: Auto-promoted better model" && git push)
+          # Check for changes; if they exist, commit and push
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "Model Update: Auto-promoted better model"
+            git push
+          else
+            echo "No changes detected in models/tft_prod"
+          fi
