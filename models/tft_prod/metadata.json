@@ -1,14 +1,14 @@
 {
     "model_type": "TemporalFusionTransformer",
     "version": "v2.0-hpo-optimized",
-    "timestamp": "2026-06-01T09:19:34.604705",
+    "timestamp": "2026-07-01T08:13:40.134304",
     "config": {
         "hidden_size": 16,
         "attention_heads": 4,
-        "dropout": 0.0
+        "dropout": 0.2
     },
     "metrics": {
-        "val_loss": 0.5996333878431748
+        "val_loss": 0.6166296604853957
     },
     "data_spec": {
         "num_features": 19,
